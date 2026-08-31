@@ -19,7 +19,14 @@ public class UserServiceImpl implements UserService {
     }
 
     public User getUser(Integer userId) {
-        return userRepository.findById(userId).get();
+        User user = null;
+        try{
+
+            user = userRepository.findById(userId).orElseThrow(()->new RuntimeException("User not found"));
+        }catch(RuntimeException e){
+            e.printStackTrace();
+        }
+        return user;
     }
 
     public List<User> getAllUsers(){
@@ -35,22 +42,28 @@ public class UserServiceImpl implements UserService {
                 return user;
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            if(e.getClass().getName().equals("PSQLException")){
+                throw new RuntimeException("User already exists");
+            }
+            throw new RuntimeException("Error while creating user");
         }
     }
 
     public User updateUser(User user, Integer userId){
-        Optional<User> oldUser = userRepository.findById(userId);
-        if(oldUser.isPresent()){
-            oldUser.get().setName(user.getName());
-            oldUser.get().setEmail(user.getEmail());
-            oldUser.get().setCreatedAt(user.getCreatedAt());
+        try{
+            user.setId(userId);
+            userRepository.save(user);
+            return user;
+        }catch (Exception e){
+            throw new RuntimeException(e);
         }
-        userRepository.save(oldUser.get());
-        return oldUser.get();
     }
 
     public void deleteUser(Integer userId){
-        userRepository.deleteById(userId);
+        try{
+            userRepository.deleteById(userId);
+        }catch (Exception e){
+            throw  new RuntimeException("User not found");
+        }
     }
 }
